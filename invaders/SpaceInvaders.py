@@ -1,5 +1,5 @@
 import pgzrun
-
+from random import randint
 WIDTH = 800
 HEIGHT = 600
 gameStatus = 0
@@ -8,7 +8,7 @@ player = Actor("player", (400, 550)) # Load in the player Actor image
 aliens = []
 bases = []
 lasers = []
-moveDelay = 10
+moveDelay = 30
 moveCounter = 0
 moveSequence = 0
 
@@ -23,18 +23,18 @@ def update(): # Pygame Zero update function
     global moveCounter
     checkKeys()
     if moveCounter == 0:
-        updateShips()
+        updateAliens()
     moveCounter += 1
     if moveCounter == moveDelay:
         moveCounter = 0
 
 def drawAliens():
-    pass
+    for a in range(len(aliens)):
+        aliens[a].draw()
 
 def drawBases():
-    for b in range(3):
-        for p in range(3):
-            bases[b][p].draw()
+    for b in range(len(bases)):
+        bases[b].drawClipped()
 
 def checkKeys():
     if keyboard.left:
@@ -43,21 +43,37 @@ def checkKeys():
     if keyboard.right:
         if player.x < 760:
             player.x += 5
-
-def updateShips():
+            
+def checkBases():
+    for b in range(len(bases)):
+        if bases[b].height < 1:
+            del bases[b]
+            
+def updateAliens():
     global moveSequence
     movex = movey = 0
     if moveSequence < 10 or moveSequence > 30:
-        movex = -10
+        movex = -30
     if moveSequence == 10 or moveSequence == 30:
-        movey = 10
+        movey = 30
     if moveSequence >10 and moveSequence < 30:
-        movex = 10
-    for a in range(18):
+        movex = 30
+    for a in range(len(aliens)):
         animate(aliens[a], pos=(aliens[a].x + movex, aliens[a].y + movey))
+        if randint(0, 1) == 0:
+            aliens[a].image = "alien1"
+        else:
+            aliens[a].image = "alien1b"
     moveSequence +=1
     if moveSequence == 40:
         moveSequence = 0
+
+    bh = randint(0, len(bases)-1)    
+    bases[bh].height -=2
+    if bases[bh].height < 1:
+        del bases[bh]
+    
+    #del aliens[randint(0, len(aliens)-1)]
 
 def init():
     initAliens()
@@ -66,13 +82,19 @@ def init():
 def initAliens():
     global aliens
     for a in range(18):
-        aliens.append(Actor("alien1", (200+(a % 6)*64,50+(int(a/3)*32))))
+        aliens.append(Actor("alien1", (210+(a % 6)*80,50+(int(a/6)*64))))
+
+def drawClipped(self):
+    screen.surface.blit(self._surf, (self.x-32, self.y-self.height+30),(0,0,64,self.height))
 
 def initBases():
+    bc = 0
     for b in range(3):
-        bases.append([])
         for p in range(3):
-            bases[b].append(Actor("base1", (150+(b*200)+(p*40),480)))
+            bases.append(Actor("base1", midbottom=(150+(b*200)+(p*40),520)))
+            bases[bc].drawClipped = drawClipped.__get__(bases[bc])
+            bases[bc].height = 60
+            bc +=1
 
 init()
 pgzrun.go()
