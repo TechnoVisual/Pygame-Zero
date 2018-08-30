@@ -1,12 +1,8 @@
 import pgzrun
 from random import randint
 import math
-WIDTH = 800
-HEIGHT = 600
+DIFFICULTY = 1
 player = Actor("player", (400, 550)) # Load in the player Actor image
-player.status = 0
-player.images = ["player","explosion1","explosion2","explosion3","explosion4","explosion5"]
-moveDelay = 30 # change this to speed up the aliens
 
 def draw(): # Pygame Zero draw function
     screen.blit('background', (0, 0))
@@ -26,46 +22,41 @@ def update(): # Pygame Zero update function
     if player.status < 30 and len(aliens) > 0:
         checkKeys()
         updateLasers()
-        if moveCounter == 0:
-            updateAliens()
         moveCounter += 1
         if moveCounter == moveDelay:
             moveCounter = 0
-        if player.status > 0:
-            player.status += 1
+            updateAliens() 
+        if player.status > 0: player.status += 1
     else:
-        if keyboard.RETURN:
-            init()
+        if keyboard.RETURN: init()
 
 def drawAliens():
-    for a in range(len(aliens)):
-        aliens[a].draw()
+    for a in range(len(aliens)): aliens[a].draw()
 
 def drawBases():
-    for b in range(len(bases)):
-        bases[b].drawClipped()
+    for b in range(len(bases)): bases[b].drawClipped()
 
 def drawLasers():
-    for l in range(len(lasers)):
-        lasers[l].draw()
-    for l in range(len(playerlasers)):
-        playerlasers[l].draw()
+    for l in range(len(lasers)): lasers[l].draw()
 
 def checkKeys():
-    global playerlaserCountdown, player
-    if playerlaserCountdown > 0:
-        playerlaserCountdown -= 1
+    global player, lasers
     if keyboard.left:
-        if player.x > 40:
-            player.x -= 5
+        if player.x > 40: player.x -= 5
     if keyboard.right:
-        if player.x < 760:
-            player.x += 5
+        if player.x < 760: player.x += 5
     if keyboard.space:
-        if playerlaserCountdown == 0:
-            playerlaserCountdown = 30
-            playerlasers.append(Actor("laser2", (player.x,player.y-32)))
-            playerlasers[len(playerlasers)-1].status = 0
+        if player.laserActive == 1:
+            player.laserActive = 0
+            clock.schedule(makeLaserActive, 1.0)
+            l = len(lasers)
+            lasers.append(Actor("laser2", (player.x,player.y-32)))
+            lasers[l].status = 0
+            lasers[l].type = 1
+
+def makeLaserActive():
+    global player
+    player.laserActive = 1
             
 def checkBases():
     for b in range(len(bases)):
@@ -74,26 +65,23 @@ def checkBases():
                 del bases[b]
 
 def updateLasers():
-    global lasers, playerlasers, aliens
+    global lasers, aliens
     for l in range(len(lasers)):
-        lasers[l].y += 2
-        checkLaserHit(l)
-        if lasers[l].y > 600:
-            lasers[l].status = 1
-    for l in range(len(playerlasers)):
-        playerlasers[l].y -= 5
-        checkPlayerLaserHit(l)
-        if playerlasers[l].y < 10:
-            playerlasers[l].status = 1
+        if lasers[l].type == 0:
+            lasers[l].y += (2*DIFFICULTY)
+            checkLaserHit(l)
+            if lasers[l].y > 600: lasers[l].status = 1
+        if lasers[l].type == 1:
+            lasers[l].y -= 5
+            checkPlayerLaserHit(l)
+            if lasers[l].y < 10: lasers[l].status = 1
     lasers = listCleanup(lasers)
-    playerlasers = listCleanup(playerlasers)
     aliens = listCleanup(aliens)
 
 def listCleanup(l):
     newList = []
     for i in range(len(l)):
-        if l[i].status == 0:
-            newList.append(l[i])
+        if l[i].status == 0: newList.append(l[i])
     return newList
     
 def checkLaserHit(l):
@@ -109,25 +97,23 @@ def checkLaserHit(l):
 def checkPlayerLaserHit(l):
     global score
     for b in range(len(bases)):
-        if bases[b].collideLaser(playerlasers[l]):
-            playerlasers[l].status = 1
+        if bases[b].collideLaser(lasers[l]): lasers[l].status = 1
     for a in range(len(aliens)):
-        if aliens[a].colliderect(playerlasers[l]):
-            playerlasers[l].status = 1
+        if aliens[a].collidepoint((lasers[l].x, lasers[l].y)):
+            lasers[l].status = 1
             aliens[a].status = 1
             score += 1000
             
 def updateAliens():
-    global moveSequence, lasers
+    global moveSequence, lasers, moveDelay
     movex = movey = 0
-    if moveSequence < 10 or moveSequence > 30:
-        movex = -30
+    if moveSequence < 10 or moveSequence > 30: movex = -15
     if moveSequence == 10 or moveSequence == 30:
-        movey = 30
-    if moveSequence >10 and moveSequence < 30:
-        movex = 30
+        movey = 50 + (10 * DIFFICULTY)
+        moveDelay -= 1
+    if moveSequence >10 and moveSequence < 30: movex = 15
     for a in range(len(aliens)):
-        animate(aliens[a], pos=(aliens[a].x + movex, aliens[a].y + movey), duration=moveDelay/30, tween='accel_decel')
+        animate(aliens[a], pos=(aliens[a].x + movex, aliens[a].y + movey), duration=0.5, tween='linear')
         if randint(0, 1) == 0:
             aliens[a].image = "alien1"
         else:
@@ -135,22 +121,27 @@ def updateAliens():
             if randint(0, 5) == 0:
                 lasers.append(Actor("laser1", (aliens[a].x,aliens[a].y)))
                 lasers[len(lasers)-1].status = 0
+                lasers[len(lasers)-1].type = 0
+        if aliens[a].y > player.y and player.status == 0:
+            player.status = 1
     moveSequence +=1
     if moveSequence == 40: moveSequence = 0
 
 def init():
-    global lasers, playerlasers, score, player, moveSequence, moveCounter, playerlaserCountdown
+    global lasers, score, player, moveSequence, moveCounter, moveDelay
     initAliens()
     initBases()
-    moveCounter = moveSequence = player.status = score = playerlaserCountdown = 0
+    moveCounter = moveSequence = player.status = score = player.laserCountdown = 0
     lasers = []
-    playerlasers = []
+    moveDelay = 30
+    player.images = ["player","explosion1","explosion2","explosion3","explosion4","explosion5"]
+    player.laserActive = 1
 
 def initAliens():
     global aliens
     aliens = []
     for a in range(18):
-        aliens.append(Actor("alien1", (210+(a % 6)*80,50+(int(a/6)*64))))
+        aliens.append(Actor("alien1", (210+(a % 6)*80,100+(int(a/6)*64))))
         aliens[a].status = 0
 
 def drawClipped(self):
