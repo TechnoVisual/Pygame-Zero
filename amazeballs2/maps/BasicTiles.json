@@ -1,0 +1,36 @@
+{ "columns":0,
+ "grid":
+    {
+     "height":1,
+     "orientation":"orthogonal",
+     "width":1
+    },
+ "margin":0,
+ "name":"BasicTiles",
+ "spacing":0,
+ "tilecount":3,
+ "tiledversion":"1.2.1",
+ "tileheight":64,
+ "tiles":[
+        {
+         "id":0,
+         "image":"..\/..\/Part 1\/images\/map1c.png",
+         "imageheight":34,
+         "imagewidth":64
+        }, 
+        {
+         "id":1,
+         "image":"..\/..\/Part 1\/images\/map2c.png",
+         "imageheight":64,
+         "imagewidth":64
+        }, 
+        {
+         "id":2,
+         "image":"..\/images\/map3c.png",
+         "imageheight":34,
+         "imagewidth":64
+        }],
+ "tilewidth":64,
+ "type":"tileset",
+ "version":1.2
+}
